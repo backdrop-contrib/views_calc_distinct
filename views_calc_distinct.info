@@ -1,0 +1,8 @@
+name = Views Calc Distinct
+description = Recalculate totals for views with Distinct option.
+core = 7.x
+package = Views
+
+dependencies[] = views_calc
+
+files[] = views_calc_distinct_plugin_style_table.inc

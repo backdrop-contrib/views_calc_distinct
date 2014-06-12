@@ -1,0 +1,154 @@
+<?php
+/**
+ * @file
+ * Views Calc Distinct module.
+ */
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function views_calc_distinct_views_pre_render(&$view){
+  if ($view->style_plugin->plugin_name == 'views_calc_distinct' &&
+    $view->style_plugin->options['views_calc_distinct'] &&
+    $view->query->distinct) {
+
+    $subresults = array();
+    $results = array();
+    $subcalc = FALSE;
+
+    if (isset($view->sub_totals) && count($view->sub_totals)) {
+      $subresults = $view->result;
+      // Get all results.
+      $summary_view = views_get_view($view->name);
+      $summary_view->set_display($view->current_display);
+      $summary_view->exposed_input = $view->exposed_input;
+      $summary_view->exposed_data = $view->exposed_data;
+      $summary_view->pre_execute($view->args);
+      $summary_view->set_items_per_page(0);
+      $summary_view->execute();
+      $summary_view->post_execute();
+      $results = $summary_view->result;
+
+      $subcalc = TRUE;
+    }
+    else {
+      $results = $view->result;
+    }
+
+    if (isset($view->views_calc_fields)) {
+      foreach ($view->views_calc_fields as $operation => $fields) {
+        foreach ($fields as $key => $field) {
+          $value = views_calc_distinct_calculate_value($field, $operation, $results);
+
+          views_calc_distinct_set_value($view, $field, $operation, $value, $view->totals);
+          // Calculate subtotals.
+          if ($subcalc) { dpm($view->sub_totals);
+            $value = views_calc_distinct_calculate_value($field, $operation, $subresults);
+            views_calc_distinct_set_value($view, $field, $operation, $value, $view->sub_totals);
+          }
+        }
+      }
+    }
+    else {
+      $view->totals = array();
+    }
+  }
+}
+
+/**
+ * Helper function calculate and set value.
+ */
+function views_calc_distinct_calculate_value($field, $operation, $results) {
+  $value = 0;
+
+  switch ($operation) {
+    case 'SUM':
+      $value = views_calc_distinct_calculate_sum($results, $field);
+      break;
+
+    case 'COUNT':
+      $value = views_calc_distinct_calculate_count($results, $field);
+      break;
+
+    case 'AVG':
+      $value = views_calc_distinct_calculate_avg($results, $field);
+      break;
+  }
+
+  return $value;
+}
+
+/**
+ * Helper function set field value.
+ */
+function views_calc_distinct_set_value($view, $field, $operation, $value, $total) {
+  $field = $view->field[$field];
+  $query_alias = '';
+
+  if (isset($field->aliases['entity_type'])) {
+    $query_alias = $field->aliases['entity_type'];
+  }
+  else {
+    $query_alias = $field->field_alias;
+  }
+
+  if (empty($query_alias)) {
+    return FALSE;
+  }
+
+  $alias = strtolower($operation) . '__' . $query_alias;
+  $total->{$alias} = $value;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function views_calc_distinct_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'views_calc_distinct'),
+  );
+}
+
+/**
+ * Helper function calculate SUM.
+ */
+function views_calc_distinct_calculate_sum($results, $field) {
+  $sum = 0;
+  $field = 'field_' . $field;
+  $keys = array(0, 'raw', 'value');
+
+  foreach ($results as $result) {
+    $sum += drupal_array_get_nested_value($result->{$field}, $keys);
+  }
+
+  return $sum;
+}
+
+/**
+ * Helper function calculate AVG.
+ */
+function views_calc_distinct_calculate_avg($results, $field) {
+  $results = views_calc_distinct_calculate_sum($results, $field);
+
+  return $results / count($total);
+}
+
+/**
+ * Helper function calculate COUNT.
+ */
+function views_calc_distinct_calculate_count($results, $field) {
+  $count = 0;
+  $field = 'field_' . $field;
+  $keys = array(0, 'raw', 'value');
+
+  foreach ($results as $result) {
+    $value = drupal_array_get_nested_value($result->{$field}, $keys);
+
+    if ($value) {
+      $count++;
+    }
+  }
+
+  return $count;
+}
