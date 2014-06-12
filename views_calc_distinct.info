@@ -6,3 +6,4 @@ package = Views
 dependencies[] = views_calc
 
 files[] = views_calc_distinct_plugin_style_table.inc
+configure = admin/structure/views/views_calc_distinct
