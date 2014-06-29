@@ -86,7 +86,7 @@ function views_calc_distinct_views_pre_render(&$view){
 
           views_calc_distinct_set_value($view, $field, $operation, $value, $view->totals);
           // Calculate subtotals.
-          if ($subcalc) {
+          if ($subcalc) {            
             $value = views_calc_distinct_calculate_value($field, $operation, $subresults);
             views_calc_distinct_set_value($view, $field, $operation, $value, $view->sub_totals);
           }
@@ -140,7 +140,11 @@ function views_calc_distinct_set_value($view, $field, $operation, $value, $total
     return FALSE;
   }
 
-  $alias = strtolower($operation) . '__' . $query_alias;
+  $alias = strtolower($operation) . '__' . $query_alias;  
+  
+  //limit the alias to 60 field, like https://api.drupal.org/api/views/plugins!views_plugin_query_default.inc/function/views_plugin_query_default%3A%3Aadd_field/7 does
+  $alias = strtolower(substr($alias, 0, 60));
+  
   $total->{$alias} = $value;
 }
 
