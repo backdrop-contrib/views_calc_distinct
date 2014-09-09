@@ -55,7 +55,7 @@ function views_calc_distinct_views_pre_render(&$view){
   $process_all = _views_calc_distinct_process_all_views_calc_displays();
 
   if ((($view->style_plugin->plugin_name == 'views_calc_distinct' && $view->style_plugin->options['views_calc_distinct']) || ($process_all)) &&
-    $view->query->distinct) {
+    !empty($view->query->distinct)) {
     $subresults = array();
     $results = array();
     $subcalc = FALSE;
