@@ -21,6 +21,7 @@ function views_calc_distinct_views_plugins() {
         'uses grouping' => FALSE,
         'uses row class' => TRUE,
         'type' => 'normal',
+        'theme' => 'views_calc_table',
         'parent' => 'views_calc_table',        
       ),
     ),
