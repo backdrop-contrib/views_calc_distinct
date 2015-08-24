@@ -8,6 +8,8 @@
  * Implements hook_views_plugins().
  */
 function views_calc_distinct_views_plugins() {
+  $path = drupal_get_path('module', 'views_calc');
+  
   return array(
     'module' => 'views_calc_distinct',
     'style' => array(
@@ -21,8 +23,10 @@ function views_calc_distinct_views_plugins() {
         'uses grouping' => FALSE,
         'uses row class' => TRUE,
         'type' => 'normal',
+        'parent' => 'views_calc_table',
         'theme' => 'views_calc_table',
-        'parent' => 'views_calc_table',        
+        'theme file' => 'theme.inc',
+        'theme path' => $path, 
       ),
     ),
   );
