@@ -53,7 +53,7 @@ function views_calc_distinct_admin_form($form, &$form_state) {
  */
 function views_calc_distinct_views_pre_render(&$view){
   $process_all = _views_calc_distinct_process_all_views_calc_displays();
-  
+
   if ((($view->style_plugin->plugin_name == 'views_calc_distinct' && $view->style_plugin->options['views_calc_distinct']) || ($process_all)) &&
     !empty($view->query->distinct)) {
     $subresults = array();
@@ -82,12 +82,12 @@ function views_calc_distinct_views_pre_render(&$view){
     if (isset($view->views_calc_fields)) {
       foreach ($view->views_calc_fields as $operation => $fields) {
         foreach ($fields as $key => $field) {
-          $value = views_calc_distinct_calculate_value($field, $operation, $results);
+          $value = views_calc_distinct_calculate_value($field, $operation, $results, $view);
 
           views_calc_distinct_set_value($view, $field, $operation, $value, $view->totals);
           // Calculate subtotals.
           if ($subcalc) {            
-            $value = views_calc_distinct_calculate_value($field, $operation, $subresults);
+            $value = views_calc_distinct_calculate_value($field, $operation, $subresults, $view);
             views_calc_distinct_set_value($view, $field, $operation, $value, $view->sub_totals);
           }
         }
@@ -102,20 +102,29 @@ function views_calc_distinct_views_pre_render(&$view){
 /**
  * Helper function calculate and set value.
  */
-function views_calc_distinct_calculate_value($field, $operation, $results) {
+function views_calc_distinct_calculate_value($field, $operation, $results, $view) {
   $value = 0;
 
+  //get the right name of the view
+  if (empty($view->field[$field]->base_table)) {
+    //this seams to be a propperty
+    $field_name = $view->field[$field]->field_alias;
+  } else {
+    //this seams to be a field
+    $field_name = 'field_'.$field;
+  }
+  
   switch ($operation) {
     case 'SUM':
-      $value = views_calc_distinct_calculate_sum($results, $field);
+      $value = views_calc_distinct_calculate_sum($results, $field_name);
       break;
 
     case 'COUNT':
-      $value = views_calc_distinct_calculate_count($results, $field);
+      $value = views_calc_distinct_calculate_count($results, $field_name);
       break;
 
     case 'AVG':
-      $value = views_calc_distinct_calculate_avg($results, $field);
+      $value = views_calc_distinct_calculate_avg($results, $field_name);
       break;
   }
 
@@ -145,9 +154,7 @@ function views_calc_distinct_set_value($view, $field, $operation, $value, $total
   //limit the alias to 60 field, like https://api.drupal.org/api/views/plugins!views_plugin_query_default.inc/function/views_plugin_query_default%3A%3Aadd_field/7 does
   $alias = strtolower(substr($alias, 0, 60));
   
-  if (!empty($total)) {
-    $total->{$alias} = $value;
-  }
+  $total->{$alias} = $value;
 }
 
 /**
@@ -165,11 +172,15 @@ function views_calc_distinct_views_api() {
  */
 function views_calc_distinct_calculate_sum($results, $field) {
   $sum = 0;
-  $field = 'field_' . $field;
   $keys = array(0, 'raw', 'value');
 
   foreach ($results as $result) {
-    $sum += drupal_array_get_nested_value($result->{$field}, $keys);
+    $value = $result->{$field};
+    if (is_array($value)) {
+      $sum += drupal_array_get_nested_value($value, $keys);
+    } else {
+      $sum += $value;
+    }
   }
 
   return $sum;
@@ -189,7 +200,6 @@ function views_calc_distinct_calculate_avg($results, $field) {
  */
 function views_calc_distinct_calculate_count($results, $field) {
   $count = 0;
-  $field = 'field_' . $field;
   $keys = array(0, 'raw', 'value');
 
   foreach ($results as $result) {
