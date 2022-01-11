@@ -8,7 +8,8 @@
  * Implements hook_views_plugins().
  */
 function views_calc_distinct_views_plugins() {
-  $path = drupal_get_path('module', 'views_calc');
+  $path = backdrop_get_path('module', 'views_calc');
+  require_once BACKDROP_ROOT . '/' . "./$path/theme.inc";
   
   return array(
     'module' => 'views_calc_distinct',
@@ -26,7 +27,8 @@ function views_calc_distinct_views_plugins() {
         'parent' => 'views_calc_table',
         'theme' => 'views_calc_table',
         'theme file' => 'theme.inc',
-        'theme path' => $path, 
+        'theme path' => "$path",
+        'even empty' => FALSE, 
       ),
     ),
   );

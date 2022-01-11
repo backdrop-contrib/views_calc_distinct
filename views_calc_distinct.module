@@ -24,7 +24,7 @@ function views_calc_distinct_menu() {
 
   $items['admin/structure/views/views_calc_distinct'] = array(
     'title' => 'Views calc distinct',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('views_calc_distinct_admin_form'),    
     'access arguments' => array('administer views calc distinct'),
     'type' => MENU_LOCAL_TASK,
@@ -38,11 +38,13 @@ function views_calc_distinct_menu() {
 */ 
 function views_calc_distinct_admin_form($form, &$form_state) {
   $form = array();
+  $config = config('views_calc_distinct.settings');
+  $form['#config'] = 'views_calc_distinct.settings';
   
   $form['views_calc_distinct_process_all_views_calc_displays'] = array(
     '#title' => t('Process all views calc displays'),
     '#type' => 'checkbox',
-    '#default_value' => _views_calc_distinct_process_all_views_calc_displays(),
+    '#default_value' => $config->get('views_calc_distinct_process_all_views_calc_displays'),
   );
   
   return system_settings_form($form);
@@ -52,7 +54,8 @@ function views_calc_distinct_admin_form($form, &$form_state) {
  * Implements hook_views_pre_render().
  */
 function views_calc_distinct_views_pre_render(&$view){
-  $process_all = _views_calc_distinct_process_all_views_calc_displays();
+
+  $process_all = config_get('views_calc_distinct.settings', 'views_calc_distinct_process_all_views_calc_displays');
 
   if ((($view->style_plugin->plugin_name == 'views_calc_distinct' && $view->style_plugin->options['views_calc_distinct']) || ($process_all)) &&
     !empty($view->query->distinct)) {
@@ -105,12 +108,12 @@ function views_calc_distinct_views_pre_render(&$view){
 function views_calc_distinct_calculate_value($field, $operation, $results, $view) {
   $value = 0;
 
-  //get the right name of the view
+  // Get the right name of the view.
   if (empty($view->field[$field]->base_table)) {
-    //this seams to be a propperty
+    // This seems to be a property.
     $field_name = $view->field[$field]->field_alias;
   } else {
-    //this seams to be a field
+    // This seems to be a field.
     $field_name = 'field_'.$field;
   }
   
@@ -151,7 +154,8 @@ function views_calc_distinct_set_value($view, $field, $operation, $value, $total
 
   $alias = strtolower($operation) . '__' . $query_alias;  
   
-  //limit the alias to 60 field, like https://api.drupal.org/api/views/plugins!views_plugin_query_default.inc/function/views_plugin_query_default%3A%3Aadd_field/7 does
+  // Limit the alias to 60 characters. 
+  // @see https://api.drupal.org/api/views/plugins!views_plugin_query_default.inc/function/views_plugin_query_default%3A%3Aadd_field/7
   $alias = strtolower(substr($alias, 0, 60));
   
   $total->{$alias} = $value;
@@ -163,7 +167,7 @@ function views_calc_distinct_set_value($view, $field, $operation, $value, $total
 function views_calc_distinct_views_api() {
   return array(
     'api' => 3,
-    'path' => drupal_get_path('module', 'views_calc_distinct'),
+    'path' => backdrop_get_path('module', 'views_calc_distinct'),
   );
 }
 
@@ -177,7 +181,7 @@ function views_calc_distinct_calculate_sum($results, $field) {
   foreach ($results as $result) {
     $value = $result->{$field};
     if (is_array($value)) {
-      $sum += drupal_array_get_nested_value($value, $keys);
+      $sum += backdrop_array_get_nested_value($value, $keys);
     } else {
       $sum += $value;
     }
@@ -192,7 +196,7 @@ function views_calc_distinct_calculate_sum($results, $field) {
 function views_calc_distinct_calculate_avg($results, $field) {
   $results = views_calc_distinct_calculate_sum($results, $field);
 
-  return $results / count($total);
+  return $results / count($results);
 }
 
 /**
@@ -203,7 +207,7 @@ function views_calc_distinct_calculate_count($results, $field) {
   $keys = array(0, 'raw', 'value');
 
   foreach ($results as $result) {
-    $value = drupal_array_get_nested_value($result->{$field}, $keys);
+    $value = backdrop_array_get_nested_value($result->{$field}, $keys);
 
     if ($value) {
       $count++;
@@ -214,8 +218,10 @@ function views_calc_distinct_calculate_count($results, $field) {
 }
 
 /**
-* Decides if we alter all query results of views calc table or only specific ones
-*/
-function _views_calc_distinct_process_all_views_calc_displays() {
-  return variable_get('views_calc_distinct_process_all_views_calc_displays', true);
+ * Implements views_calc_distinct_autoload_info().
+ */
+function views_calc_distinct_autoload_info() {
+  return array(
+    'views_calc_distinct_plugin_style_table' => 'views_calc_distinct_plugin_style_table.inc',
+  );
 }

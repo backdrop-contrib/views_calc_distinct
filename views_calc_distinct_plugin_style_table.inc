@@ -31,7 +31,7 @@ class views_calc_distinct_plugin_style_table extends views_calc_table {
       '#title' => t('Enable Views Calc Distinct'),
       '#type' => 'checkbox',
       '#default_value' => $this->options['views_calc_distinct'],
-      '#description' => t("Select 'Disticnt' option in 'Query settings' first."),
+      '#description' => t("Select 'Distinct' option in 'Query settings' first."),
     );
   }
 }
